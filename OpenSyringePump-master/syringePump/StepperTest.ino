@@ -7,6 +7,8 @@ For use with the Adafruit Motor Shield v2
 ---->	http://www.adafruit.com/products/1438
 */
 
+// 400x/391 cc/minutes 
+// x is the rev per minutes
 
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
@@ -67,4 +69,21 @@ void loop() {
 //  Serial.println("Microstep steps");
 //  myMotor->step(50, FORWARD, MICROSTEP); 
 //  myMotor->step(50, BACKWARD, MICROSTEP);
+}
+
+long nextLong(){
+  while(Serial.available() < 4);
+  long val = 0;
+  val |= (Serial.read() & 0xff) << 24;
+  val |= (Serial.read() & 0xff) << 16;
+  val |= (Serial.read() & 0xff) << 8;
+  val |= (Serial.read() & 0xff);
+  return val;
+}
+
+void sendLong(long val){
+  Serial.write((val >> 24) & 0xff);
+  Serial.write((val >> 16) & 0xff);
+  Serial.write((val >> 8) & 0xff);
+  Serial.write(val & 0xff);
 }
