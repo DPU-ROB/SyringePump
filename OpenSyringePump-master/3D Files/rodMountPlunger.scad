@@ -24,8 +24,8 @@ nutSlotSizeY = nutAcross;
 nutSlotSizeZ = nutAcross/2;
 
 //linear bearing 
-LM8UU_dia = 15.4;
-LM8UU_length = 24;
+LM8UU_dia = 16;
+LM8UU_length = 50;
 
 //cube containing nut, linear bearing, and plunger
 mountXSize = nutWellDepth + nutWallThicknessFront + nutWallThicknessBack;
