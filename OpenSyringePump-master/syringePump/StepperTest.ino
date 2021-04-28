@@ -21,9 +21,12 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 // Connect a stepper motor with 200 steps per revolution (1.8 degree)
 // to motor port #1 (M3 and M4)
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(400, 2);
-int fw;
 int state = 0;
-int steps;
+
+unsigned long stepper1Steps = 0;
+unsigned long stepper2Steps = 0;
+
+
 void setup() {
   Serial.begin(9600);           // set up Serial library at 9600 bps
   Serial.println("Stepper test!");
@@ -36,12 +39,62 @@ void setup() {
 
 void loop() {
 //  Serial.println("Single coil steps");
-  
-  if (Serial.available() > 0) {
-    // read the incoming byte:
-    int sub_state = Serial.read();
-    if(sub_state != 10){
-      state = sub_state;
+
+  if(state == 0){ //Initial Program State
+    while(Serial.available() <  1);
+    char ack = nextByte(1000);
+    if(ack == 42){
+      sendByte(43);
+      ack = nextByte(1000);
+      if(ack == 44){
+         state = 1;   
+      }
+    }
+    continue;
+  } else if (state == 1) { //Main Program State
+    while(Serial.available() < 1);
+    char bite = nextByte(1000);
+    if(bite == 90){
+      state = 2;
+    } else if(bite == 91){
+      state = 4;
+    } else {
+      sendByte(63); //errorByte - tells gui to display error
+      sendByte(30); //error number - tells gui what error to display
+    }
+    continue;
+  } else if(state == 2){
+     char pumpNum = nextByte(1000);
+     unsigned long steps = nextLong(1000);
+     if(steps == -1){
+      sendByte(63); //errorByte - tells gui to display error
+      sendByte(31); //error - Number of steps not recieved
+      state == 1;
+      continue;
+     }
+     if(pumpNum == 1){
+      if(steps < stepper1Steps){
+        motor1->step(stepper1Steps - steps, FORWARD, SINGLE);
+      } else if(steps > stepper1Steps){
+        motor1->step(steps - stepper1Steps, BACKWARD, SINGLE);
+      }
+     } else if(pumpNum == 2){
+      if(steps < stepper2Steps){
+        motor1->step(stepper2Steps - steps, FORWARD, SINGLE);
+      } else if(steps > stepper1Steps){
+        motor1->step(steps - stepper2Steps, BACKWARD, SINGLE);
+      }
+     } else {
+       sendByte(63); //errorByte - tells gui to display error
+       sendByte(32); //error number - //invalid pump number recieved
+       state == 1;
+       continue;
+     }
+     state == 3;
+     continue;
+  } else if(state == 3){
+    while(millis() >= targetTime){
+      
     }
   }
 
@@ -71,9 +124,14 @@ void loop() {
 //  myMotor->step(50, BACKWARD, MICROSTEP);
 }
 
-long nextLong(){
-  while(Serial.available() < 4);
-  long val = 0;
+unsigned long nextLong(int del){
+  unsigned long startTime = millis();
+  while(Serial.available() < 4){
+    if(millis() - startTime >= del){
+      return -1;
+    }
+  }
+  unsigned long val = 0;
   val |= (Serial.read() & 0xff) << 24;
   val |= (Serial.read() & 0xff) << 16;
   val |= (Serial.read() & 0xff) << 8;
@@ -86,4 +144,18 @@ void sendLong(long val){
   Serial.write((val >> 16) & 0xff);
   Serial.write((val >> 8) & 0xff);
   Serial.write(val & 0xff);
+}
+
+void sendByte(char bite){
+  Serial.write(bite);
+}
+
+char nextByte(int del){
+  unsigned long startTime = millis();
+  while(Serial.available() < 1){
+    if(millis() - startTime >= del){
+      return -1;
+    }
+  }
+  return Serial.read();
 }
